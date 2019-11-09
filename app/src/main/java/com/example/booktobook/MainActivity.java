@@ -9,6 +9,7 @@ import androidx.multidex.MultiDex;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -19,7 +20,13 @@ import android.view.MenuItem;
 import android.view.Window;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -92,31 +99,53 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        PowerManager pm=(PowerManager) getApplicationContext().getSystemService(POWER_SERVICE);
-        boolean isWhiteListing =false;
-        if (android.os.Build.VERSION.SDK_INT>=android.os.Build.VERSION_CODES.M){
-            isWhiteListing = pm.isIgnoringBatteryOptimizations(getApplicationContext().getPackageName());
+//        PowerManager pm=(PowerManager) getApplicationContext().getSystemService(POWER_SERVICE);
+//        boolean isWhiteListing =false;
+//        if (android.os.Build.VERSION.SDK_INT>=android.os.Build.VERSION_CODES.M){
+//            isWhiteListing = pm.isIgnoringBatteryOptimizations(getApplicationContext().getPackageName());
+//
+//        }
+//        if (!isWhiteListing){
+//            Intent intent= new Intent();
+//            intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+//            intent.setData(Uri.parse("package:"+getApplicationContext().getPackageName()));
+//            startActivity(intent);
+//        }
+//        if (RealService.serviceIntent==null) {
+//            serviceIntent = new Intent(this, RealService.class);
+//            Log.d("hi","service start");
+//            startService(serviceIntent);
+//        }
+//        else{
+//            serviceIntent=RealService.serviceIntent;
+//            Toast.makeText(getApplicationContext(),"already",Toast.LENGTH_SHORT).show();
+//
+//        }
 
-        }
-        if (!isWhiteListing){
-            Intent intent= new Intent();
-            intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-            intent.setData(Uri.parse("package:"+getApplicationContext().getPackageName()));
-            startActivity(intent);
-        }
-        if (RealService.serviceIntent==null) {
-            serviceIntent = new Intent(this, RealService.class);
-            Log.d("hi","service start");
-            startService(serviceIntent);
-        }
-        else{
-            serviceIntent=RealService.serviceIntent;
-            Toast.makeText(getApplicationContext(),"already",Toast.LENGTH_SHORT).show();
+        FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(this, new OnSuccessListener<InstanceIdResult>() {
+            @Override
+            public void onSuccess(InstanceIdResult instanceIdResult) {
 
-        }
+                String newToken=instanceIdResult.getToken();
+                Log.d("qwe","새 토큰"+newToken);
 
-
+                final FirebaseFirestore db = FirebaseFirestore.getInstance();
+                SharedPreferences preferences = getSharedPreferences("pref",MODE_PRIVATE);
+                final String ID = preferences.getString("ID","");
+                Log.d("id",ID);
+                DocumentReference documentReference = db.collection("Users")
+                        .document(ID);
+                documentReference.update("token",newToken).addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Log.d("dd","Sucessful update");
+                    }
+                });
+            }
+        });
     }
+
+
 
 
 

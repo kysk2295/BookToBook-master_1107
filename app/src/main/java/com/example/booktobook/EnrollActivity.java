@@ -92,6 +92,8 @@ public class EnrollActivity extends AppCompatActivity {
                             }
                         });
 
+
+
                 //나의 책장에 추가
 //                db.collection("Users").document(ID)
 //                        .update("myBook", FieldValue.arrayUnion(new MyBookData(bookImg_url,title,author,publisher)));
