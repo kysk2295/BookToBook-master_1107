@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentReference;
@@ -83,65 +84,77 @@ public class AdapterBook extends RecyclerView.Adapter<AdapterBook.ViewHolder> {
             borrow = itemView.findViewById(R.id.item_book_button_borrow);
 
 
-
             borrow.setOnClickListener(new View.OnClickListener() {
-                @SuppressLint("ObsoleteSdkInt")
-                @Override
-                public void onClick(View view) {
+                                          @SuppressLint("ObsoleteSdkInt")
+                                          @Override
+                                          public void onClick(View view) {
 
-                    //양 계정에 알림을 추가
-                    final FirebaseFirestore db = FirebaseFirestore.getInstance();
-                    DocumentReference documentReference = db.collection("Users")
-                            .document(haver.getText().toString().substring(3));
-                    documentReference.update("alert", FieldValue.arrayUnion(
-                            new Alert(
-                                    place.getText().toString().substring(3),
-                                    time.getText().toString().substring(3),
-                                    "빌려줌",
-                                    title.getText().toString(),
-                                    id.toString()
-                            )
-                    ));
+                                              //양 계정에 알림을 추가
+                                              final FirebaseFirestore db = FirebaseFirestore.getInstance();
+                                              DocumentReference documentReference = db.collection("Users")
+                                                      .document(haver.getText().toString().substring(3));
+                                              documentReference.update("alert", FieldValue.arrayUnion(
+                                                      new Alert(
+                                                              place.getText().toString().substring(3),
+                                                              time.getText().toString().substring(3),
+                                                              "빌려줌",
+                                                              title.getText().toString(),
+                                                              id.toString()
+                                                      )
+                                              ));
 
-                    documentReference = db.collection("Users")
-                            .document(id.toString());
-                    documentReference.update("alert",FieldValue.arrayUnion(
-                            new Alert(
-                                    place.getText().toString().substring(3),
-                                    time.getText().toString().substring(3),
-                                    "빌림",
-                                    title.getText().toString(),
-                                    haver.getText().toString().substring(3)
-                            )
-                    ));
+                                              documentReference = db.collection("Users")
+                                                      .document(id.toString());
+                                              documentReference.update("alert", FieldValue.arrayUnion(
+                                                      new Alert(
+                                                              place.getText().toString().substring(3),
+                                                              time.getText().toString().substring(3),
+                                                              "빌림",
+                                                              title.getText().toString(),
+                                                              haver.getText().toString().substring(3)
+                                                      )
+                                              ));
 
-                    // 알림
+                                              // 자기 자신에게 알림
+                                              final int notiId = 101;
+                                              final String strChannelId = "channel_id";
+                                              String content = haver.getText().toString().substring(3) + "님의 " + title.getText().toString() + " 책 을 빌렸습니다.";
+                                              // Pending intent 생성
+                                              Intent notificationIntent = new Intent(mcontext, MainActivity.class);
+                                              notificationIntent.putExtra("noti_id", notiId);
+                                              notificationIntent.putExtra("noti_text", "PendingIntent test");
+                                              PendingIntent contentIntent = PendingIntent.getActivity(mcontext, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-                    PendingIntent pendingIntent= PendingIntent.getActivity(mcontext,0,new Intent(mcontext,MainActivity.class),PendingIntent.FLAG_CANCEL_CURRENT);
-                    NotificationCompat.Builder builder= new NotificationCompat.Builder(mcontext,"default");
-                    builder.setSmallIcon(R.mipmap.ic_launcher);
-                    builder.setContentTitle("책 빌림");
-                    builder.setContentText(haver.getText().toString().substring(3)+"님의 "+title.getText().toString()+" 책 을 빌렸습니다.");
-                    builder.setContentIntent(pendingIntent);
-                    builder.setAutoCancel(true);
+                                              // Notification 생성
+                                              NotificationCompat.Builder builder = new NotificationCompat.Builder(mcontext, strChannelId);
+                                              builder.setContentTitle("BookToBook")
+                                                      .setContentText(content)
+                                                      .setSmallIcon(R.mipmap.ic_launcher)
+                                                      .setContentIntent(contentIntent)
+                                                      .setAutoCancel(true)
+                                                      .setWhen(System.currentTimeMillis())
+                                                      .setDefaults(Notification.DEFAULT_ALL);
 
-                    if (Build.VERSION.SDK_INT>= Build.VERSION_CODES.O){
-                        NotificationManager notificationManager=(NotificationManager)mcontext.getSystemService(Context.NOTIFICATION_SERVICE);
-                        NotificationChannel notificationChannel = new NotificationChannel("channel_id", "channel_name", NotificationManager.IMPORTANCE_DEFAULT);
-                        notificationChannel.setDescription("channel description");
-                        notificationChannel.enableLights(true);
-                        notificationChannel.setLightColor(Color.GREEN);
-                        notificationChannel.enableVibration(true);
-                        notificationChannel.setVibrationPattern(new long[]{100, 200, 100, 200});
-                        notificationChannel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
-                        notificationManager.createNotificationChannel(notificationChannel);
-                        notificationManager.notify(1,builder.build());
+                                              // Android O (API 26) 이상 부터는 channel id 등록 필요
+                                              NotificationManager notificationManager = (NotificationManager) mcontext.getSystemService(Context.NOTIFICATION_SERVICE);
+                                              if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                  final String strTitle = "BootToBook";
+                                                  NotificationChannel channel = notificationManager.getNotificationChannel(strChannelId);
+                                                  if (channel == null) {
+                                                      channel = new NotificationChannel(strChannelId, strTitle, NotificationManager.IMPORTANCE_HIGH);
+                                                      notificationManager.createNotificationChannel(channel);
+                                                  }
 
-                    }
+                                                  builder.setChannelId(strChannelId);
+                                              }
+
+                                              notificationManager.notify(notiId, builder.build());
 
 
+
+                    // 빌려준 사람에게 알람
                     final String FCM_MESSAGE_URL = "https://fcm.googleapis.com/fcm/send";
-                    final String SERVER_KEY = "AAAAvwFFAB0:APA91bG6lEovbB98QdViQbUDjM3ZWP9OMngTlHnmOkR6wtW1Fw5QmUXOLHi4RTPywzIB7km34uvmq2K-9F3tB8pttOtjhLKQSjPn68EH9dhZ0beE5YaW6tvuw9j5VmCxn6qir7Nd4kQ9";
+                    final String SERVER_KEY = "AAAAvwFFAB0:APA91bH27fELBmCwMY1ND4vQVUeaKmujW-k0N72NDzhJDaoV4IQ9z-KHcfS1UePQ_bGUKK2vWbJRmFLD_6txrpS8BJj5tpU1NKashowU-6jat4RW5aaPeQVHn9m6y7ZHlPqCJi4y1kB9";
                     documentReference=db.collection("Users")
                             .document(haver.getText().toString().substring(3));
                     documentReference.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
@@ -149,34 +162,45 @@ public class AdapterBook extends RecyclerView.Adapter<AdapterBook.ViewHolder> {
                         public void onSuccess(DocumentSnapshot documentSnapshot) {
 
                             token= (String) documentSnapshot.get("token");
-                            //FCM 메세 생성
-                            try {
-                                JSONObject root = new JSONObject();
-                                JSONObject notification = new JSONObject();
-                                String data = id.toString() + "님이 " + title.getText().toString().substring(3)
-                                        + "책을 빌렸습니다." + "\n" + place.getText().toString().substring(3) + "장소에서" + time.getText().toString().substring(3) + "에 만납니다.";
+                            Log.d("yourToken",token);
 
-                                notification.put("body", data);
-                                notification.put("title","BTB");
-                                root.put("notification",notification);
-                                root.put("to",token);
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        JSONObject root = new JSONObject();
+                                        JSONObject notification = new JSONObject();
+                                        String data = id.toString() + "님이 " + title.getText().toString()
+                                                + "책을 빌렸습니다." + "\n" + place.getText().toString().substring(3) + "장소에서" + time.getText().toString().substring(3) + "에 만납니다.";
 
-                                URL url= new URL(FCM_MESSAGE_URL);
-                                HttpURLConnection connection=(HttpURLConnection)url.openConnection();
-                                connection.setRequestMethod("POST");
-                                connection.setDoOutput(true);
-                                connection.setDoInput(true);
-                                connection.addRequestProperty("Authorization", "key=" + SERVER_KEY);
-                                connection.setRequestProperty("Accept", "application/json");
-                                connection.setRequestProperty("Content-type", "application/json");
-                                OutputStream os=connection.getOutputStream();
-                                os.write(root.toString().getBytes("utf-8"));
-                                os.flush();
-                                connection.getResponseCode();
-                            }catch (Exception e) {
-                                e.printStackTrace();
-                            }
+                                        notification.put("body", data);
+                                        notification.put("title","BookToBook");
+                                        root.put("notification",notification);
+                                        root.put("to",token);
 
+                                        URL url= new URL(FCM_MESSAGE_URL);
+                                        HttpURLConnection connection=(HttpURLConnection)url.openConnection();
+                                        connection.setRequestMethod("POST");
+                                        connection.setDoOutput(true);
+                                        connection.setDoInput(true);
+                                        connection.addRequestProperty("Authorization", "key=" + SERVER_KEY);
+                                        connection.setRequestProperty("Accept", "application/json");
+                                        connection.setRequestProperty("Content-type", "application/json");
+                                        OutputStream os=connection.getOutputStream();
+                                        os.write(root.toString().getBytes("utf-8"));
+                                        os.flush();
+                                        connection.getResponseCode();
+                                    }catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }).start();
+
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Log.d("yourToken","fail");
                         }
                     });
 
@@ -270,6 +294,7 @@ public class AdapterBook extends RecyclerView.Adapter<AdapterBook.ViewHolder> {
         //create a new view
         View v = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_book,parent,false);
+        mcontext=parent.getContext();
 
         ViewHolder vh = new ViewHolder(v);
 

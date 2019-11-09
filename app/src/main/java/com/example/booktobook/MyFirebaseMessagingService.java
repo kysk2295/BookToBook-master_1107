@@ -37,12 +37,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         Log.d(TAG, "onNewToken: token="+s);
         //TODO:서버로 토큰을 보내서 저장한다
         token=s;
-        try {
-            Thread.sleep(20000);
+
+
             sendRegistrationToServer(s);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+
 
     }
 
@@ -62,13 +60,16 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
 
     private void sendNotification(RemoteMessage remoteMessage,String title,String body){
-        Intent intent= new Intent(this,MainActivity.class);
+
+
+        Intent intent= new Intent(getApplicationContext(),MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pendingIntent= PendingIntent.getActivity(this,0,intent,PendingIntent.FLAG_ONE_SHOT);
+        PendingIntent pendingIntent= PendingIntent.getActivity(getApplicationContext(),0,intent,PendingIntent.FLAG_ONE_SHOT);
         String channelId="Channel ID";
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
         NotificationCompat.Builder builder=
-                new NotificationCompat.Builder(this,channelId)
+                new NotificationCompat.Builder(getApplicationContext(),channelId)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setContentText(body)
@@ -82,8 +83,9 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             NotificationChannel channel = new NotificationChannel(channelId,channelName,NotificationManager.IMPORTANCE_HIGH);
             notificationManager.createNotificationChannel(channel);
 
-            notificationManager.notify(0,builder.build());
+            builder.setChannelId(channelId);
         }
+        notificationManager.notify(0,builder.build());
     }
 
     private void sendRegistrationToServer(String token) {
